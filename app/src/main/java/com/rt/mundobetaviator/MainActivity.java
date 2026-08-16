@@ -11,7 +11,7 @@ import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
     private WebView webView;
-    private static final String APP_URL = "https://dashboardaviator.netlify.app/";
+    private static final String APP_URL = "https://mundobetaviator.netlify.app/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,8 +35,8 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient());
 
-        // Sempre inicia na tela pública do aplicativo.
-        // Remove a sessão anterior do Supabase/WebView antes de abrir o dashboard.
+        // Sempre inicia pela tela de login do MUNDO BET AVIATOR.
+        // Remove a sessão anterior do WebView/Supabase antes de carregar o sistema.
         WebStorage.getInstance().deleteAllData();
         webView.clearCache(true);
         webView.clearHistory();
