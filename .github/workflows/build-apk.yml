@@ -23,16 +23,20 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validar logo antes da compilação
+      - name: Validar logo WebP antes da compilação
         shell: bash
         run: |
+          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          for f in [Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.jpg'), Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.jpg')]:
-              data=f.read_bytes()
-              assert data[:2] == b'\xff\xd8' and data[-2:] == b'\xff\xd9', f'JPEG inválido: {f}'
+          for f in [Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp'), Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp')]:
+              data = f.read_bytes()
               assert len(data) > 2000, f'Arquivo incompleto: {f}'
-              print(f'LOGO VÁLIDA: {f} - {len(data)} bytes')
+              assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', f'WebP inválido: {f}'
+              print(f'LOGO WEBP VÁLIDA: {f} - {len(data)} bytes')
+          for f in [Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'), Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml')]:
+              assert f.exists(), f'Adaptive icon ausente: {f}'
+              print(f'ADAPTIVE ICON OK: {f}')
           PY
 
       - name: Gerar APK
@@ -43,14 +47,15 @@ jobs:
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
-          unzip -l "$APK" | grep -E 'res/mipmap-xxxhdpi-v4/ic_launcher(_round)?\.jpg'
-          unzip -p "$APK" res/mipmap-xxxhdpi-v4/ic_launcher.jpg > /tmp/ic_launcher.jpg
+          unzip -l "$APK" | grep -E 'res/mipmap-xxxhdpi-v4/ic_launcher(_round)?\.webp'
+          unzip -l "$APK" | grep -E 'res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml|res/mipmap-anydpi-v26-v26/ic_launcher(_round)?\.xml' || true
+          unzip -p "$APK" res/mipmap-xxxhdpi-v4/ic_launcher.webp > /tmp/ic_launcher.webp
           python3 - <<'PY'
           from pathlib import Path
-          data=Path('/tmp/ic_launcher.jpg').read_bytes()
-          assert data[:2] == b'\xff\xd8' and data[-2:] == b'\xff\xd9', 'Ícone dentro do APK inválido'
+          data = Path('/tmp/ic_launcher.webp').read_bytes()
           assert len(data) > 2000, 'Ícone dentro do APK incompleto'
-          print(f'ÍCONE FINAL VÁLIDO: {len(data)} bytes')
+          assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', 'Ícone WebP dentro do APK inválido'
+          print(f'ÍCONE FINAL WEBP VÁLIDO: {len(data)} bytes')
           PY
 
       - name: Preparar APK
