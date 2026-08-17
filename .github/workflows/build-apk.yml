@@ -23,26 +23,27 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validar ícone JPG real
+      - name: Validar logo WebP
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/drawable/app_icon.jpg
-          file app/src/main/res/drawable/app_icon.jpg
-          file app/src/main/res/drawable/app_icon.jpg | grep -Eq 'JPEG image data|JPG image data'
+          LOGO=app/src/main/res/drawable-nodpi/launcher_logo.webp
+          test -s "$LOGO"
+          file "$LOGO"
+          file "$LOGO" | grep -qi 'Web/P image\|WebP'
+          grep -q 'android:icon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
+          grep -q 'android:roundIcon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
 
       - name: Gerar APK
         run: gradle clean assembleDebug
 
-      - name: Validar ícone dentro do APK
+      - name: Validar recurso no APK
         shell: bash
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          unzip -Z1 "$APK" | grep -E 'res/drawable/app_icon\.jpg' >/tmp/icon_entries.txt
-          cat /tmp/icon_entries.txt
-          test -s /tmp/icon_entries.txt
+          unzip -Z1 "$APK" | grep -E 'res/drawable-nodpi-v4/launcher_logo\.webp|res/drawable-nodpi/launcher_logo\.webp'
 
       - name: Preparar APK
         run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
@@ -52,4 +53,5 @@ jobs:
         with:
           name: MUNDO-BET-AVIATOR-APK
           path: MUNDO-BET-AVIATOR.apk
+          if-no-files-found: error
           retention-days: 30
