@@ -23,22 +23,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validar ícones PNG reais
+      - name: Validar ícone JPG real
         shell: bash
         run: |
           set -euo pipefail
-          for f in \
-            app/src/main/res/mipmap-mdpi/ic_launcher.png \
-            app/src/main/res/mipmap-hdpi/ic_launcher.png \
-            app/src/main/res/mipmap-xhdpi/ic_launcher.png \
-            app/src/main/res/mipmap-xxhdpi/ic_launcher.png \
-            app/src/main/res/mipmap-xxxhdpi/ic_launcher.png \
-            app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
-          do
-            test -s "$f"
-            file "$f"
-            file "$f" | grep -q 'PNG image data'
-          done
+          test -s app/src/main/res/drawable/app_icon.jpg
+          file app/src/main/res/drawable/app_icon.jpg
+          file app/src/main/res/drawable/app_icon.jpg | grep -Eq 'JPEG image data|JPG image data'
 
       - name: Gerar APK
         run: gradle clean assembleDebug
@@ -49,7 +40,7 @@ jobs:
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          unzip -Z1 "$APK" | grep -E 'res/mipmap-.*/ic_launcher\.png|res/mipmap-anydpi-v26/ic_launcher\.xml' >/tmp/icon_entries.txt
+          unzip -Z1 "$APK" | grep -E 'res/drawable/app_icon\.jpg' >/tmp/icon_entries.txt
           cat /tmp/icon_entries.txt
           test -s /tmp/icon_entries.txt
 
