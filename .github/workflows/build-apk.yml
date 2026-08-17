@@ -23,39 +23,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validar PNGs reais do launcher
+      - name: Validar ícone JPG real
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import struct
-          files = [
-              Path('app/src/main/res/mipmap-mdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-hdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xhdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-mdpi/ic_launcher_round.png'),
-              Path('app/src/main/res/mipmap-hdpi/ic_launcher_round.png'),
-              Path('app/src/main/res/mipmap-xhdpi/ic_launcher_round.png'),
-              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png'),
-              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png'),
-              Path('app/src/main/res/drawable-nodpi/ic_launcher_foreground.png'),
-          ]
-          for f in files:
-              data = f.read_bytes()
-              assert data[:8] == b'\x89PNG\r\n\x1a\n', f'PNG inválido: {f}'
-              w, h = struct.unpack('>II', data[16:24])
-              assert w > 0 and h > 0, f'Dimensões inválidas: {f}'
-              print(f'PNG OK: {f} - {w}x{h} - {len(data)} bytes')
-          for f in [
-              Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'),
-              Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml')
-          ]:
-              assert f.exists(), f'Adaptive icon ausente: {f}'
-              print(f'ADAPTIVE OK: {f}')
-          PY
+          test -s app/src/main/res/drawable/app_icon.jpg
+          file app/src/main/res/drawable/app_icon.jpg
+          file app/src/main/res/drawable/app_icon.jpg | grep -Eq 'JPEG image data|JPG image data'
 
       - name: Gerar APK
         run: gradle clean assembleDebug
@@ -65,17 +39,10 @@ jobs:
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
-          unzip -l "$APK" | grep -E 'res/mipmap-(mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi)-v4/ic_launcher(_round)?\.png'
-          unzip -l "$APK" | grep -E 'res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml'
-          unzip -p "$APK" res/mipmap-xxxhdpi-v4/ic_launcher.png > /tmp/ic_launcher.png
-          python3 - <<'PY'
-          from pathlib import Path
-          import struct
-          data=Path('/tmp/ic_launcher.png').read_bytes()
-          assert data[:8] == b'\x89PNG\r\n\x1a\n', 'Ícone PNG final inválido'
-          w,h=struct.unpack('>II',data[16:24])
-          print(f'ÍCONE FINAL OK: {w}x{h} - {len(data)} bytes')
-          PY
+          test -f "$APK"
+          unzip -Z1 "$APK" | grep -E 'res/drawable/app_icon\.jpg' >/tmp/icon_entries.txt
+          cat /tmp/icon_entries.txt
+          test -s /tmp/icon_entries.txt
 
       - name: Preparar APK
         run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
