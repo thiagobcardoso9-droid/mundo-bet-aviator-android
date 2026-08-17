@@ -11,8 +11,6 @@ jobs:
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -25,82 +23,62 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Recuperar PNG oficial e validar
+      - name: Validar ícones PNG reais
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/res/mipmap
-          rm -rf app/src/main/res/mipmap-anydpi-v26
-          rm -f app/src/main/res/mipmap-xxxhdpi/ic_launcher.* app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.*
-          rm -f app/src/main/res/mipmap/ic_launcher.* app/src/main/res/mipmap/ic_launcher_round.*
-
-          git show HEAD^:.github/workflows/build-apk.yml > /tmp/workflow-anterior.yml
           python3 - <<'PY'
           from pathlib import Path
-          import base64, re, struct, zlib
+          import struct, zlib
 
-          txt = Path('/tmp/workflow-anterior.yml').read_text(encoding='utf-8', errors='ignore')
-          marker = "cat > /tmp/logo.b64 <<'B64'"
-          if marker not in txt:
-              raise SystemExit('Logo não encontrada no workflow anterior')
-          chunk = txt.split(marker,1)[1].split('\nB64',1)[0]
-          clean = ''.join(re.findall(r'[A-Za-z0-9+/=]', chunk))
-          raw = clean.rstrip('=')
-          raw += '=' * ((4 - len(raw) % 4) % 4)
-          data = base64.b64decode(raw, validate=False)
+          files = [
+              Path('app/src/main/res/mipmap-mdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-hdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xhdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'),
+              Path('app/src/main/res/drawable-nodpi/ic_launcher_foreground.png'),
+          ]
 
-          assert data.startswith(b'\x89PNG\r\n\x1a\n'), 'Assinatura PNG inválida'
-          pos=8; saw_ihdr=False; saw_iend=False
-          while pos+12 <= len(data):
-              n=struct.unpack('>I',data[pos:pos+4])[0]
-              typ=data[pos+4:pos+8]
-              payload=data[pos+8:pos+8+n]
-              expected=struct.unpack('>I',data[pos+8+n:pos+12+n])[0]
-              actual=zlib.crc32(payload,zlib.crc32(typ)) & 0xffffffff
-              assert actual==expected, f'CRC inválido no chunk {typ!r}'
-              if typ==b'IHDR':
-                  width,height=struct.unpack('>II',payload[:8]); saw_ihdr=True
-              pos += 12+n
-              if typ==b'IEND': saw_iend=True; break
-          assert saw_ihdr and saw_iend, 'PNG incompleta'
-          Path('app/src/main/res/mipmap/ic_launcher.png').write_bytes(data)
-          Path('app/src/main/res/mipmap/ic_launcher_round.png').write_bytes(data)
-          print(f'LOGO OFICIAL VÁLIDA: {width}x{height} - {len(data)} bytes')
+          for f in files:
+              d = f.read_bytes()
+              assert d.startswith(b'\x89PNG\r\n\x1a\n'), f'PNG inválida: {f}'
+              pos = 8
+              saw_iend = False
+              while pos + 12 <= len(d):
+                  n = struct.unpack('>I', d[pos:pos+4])[0]
+                  t = d[pos+4:pos+8]
+                  p = d[pos+8:pos+8+n]
+                  crc = struct.unpack('>I', d[pos+8+n:pos+12+n])[0]
+                  assert (zlib.crc32(p, zlib.crc32(t)) & 0xffffffff) == crc, f'CRC inválido: {f}'
+                  pos += 12 + n
+                  if t == b'IEND':
+                      saw_iend = True
+                      break
+              assert saw_iend, f'PNG incompleta: {f}'
+              print(f'OK: {f} ({len(d)} bytes)')
           PY
 
       - name: Gerar APK
         run: gradle clean assembleDebug
 
-      - name: Validar ícone no APK final
+      - name: Validar APK gerado
         shell: bash
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
-          ENTRY=$(unzip -Z1 "$APK" | grep -E '^res/mipmap.*/ic_launcher\.png$|^res/mipmap/ic_launcher\.png$' | head -n1)
-          test -n "$ENTRY"
-          unzip -p "$APK" "$ENTRY" > /tmp/final_icon.png
-          python3 - <<'PY'
-          from pathlib import Path
-          import struct,zlib
-          d=Path('/tmp/final_icon.png').read_bytes()
-          assert d.startswith(b'\x89PNG\r\n\x1a\n')
-          pos=8; ok=False
-          while pos+12<=len(d):
-              n=struct.unpack('>I',d[pos:pos+4])[0]; t=d[pos+4:pos+8]; p=d[pos+8:pos+8+n]
-              crc=struct.unpack('>I',d[pos+8+n:pos+12+n])[0]
-              assert (zlib.crc32(p,zlib.crc32(t)) & 0xffffffff)==crc
-              pos+=12+n
-              if t==b'IEND': ok=True; break
-          assert ok
-          print('ÍCONE FINAL PNG VALIDADO DENTRO DO APK')
-          PY
+          test -f "$APK"
+          unzip -Z1 "$APK" | grep -E 'res/mipmap-.*/ic_launcher\.png|res/mipmap-anydpi-v26/ic_launcher\.xml' >/tmp/icon_entries.txt
+          cat /tmp/icon_entries.txt
+          test -s /tmp/icon_entries.txt
 
-      - name: Preparar APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
+      - name: Preparar APK final
+        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-FINAL.apk
 
-      - name: Disponibilizar APK
+      - name: Publicar APK para download
         uses: actions/upload-artifact@v4
         with:
           name: MUNDO-BET-AVIATOR-FINAL
-          path: MUNDO-BET-AVIATOR.apk
+          path: MUNDO-BET-AVIATOR-FINAL.apk
+          if-no-files-found: error
           retention-days: 30
