@@ -23,8 +23,41 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Reconstruir logo oficial do aplicativo
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf app/src/main/res/mipmap-*
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          base64 -d app/src/main/icon/logo_official.b64 > app/src/main/res/mipmap-xxxhdpi/ic_launcher.jpg
+          cp app/src/main/res/mipmap-xxxhdpi/ic_launcher.jpg app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.jpg
+          python3 - <<'PY'
+          from pathlib import Path
+          for f in [Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.jpg'), Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.jpg')]:
+              data=f.read_bytes()
+              assert data[:2] == b'\xff\xd8' and data[-2:] == b'\xff\xd9', f'JPEG inválido: {f}'
+              assert len(data) > 10000, f'Arquivo pequeno demais: {f}'
+              print(f'OK {f}: {len(data)} bytes')
+          PY
+
       - name: Gerar APK
-        run: gradle assembleDebug
+        run: gradle clean assembleDebug
+
+      - name: Validar ícone dentro do APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          unzip -l "$APK" | grep -E 'res/mipmap-xxxhdpi-v4/ic_launcher(_round)?\.jpg'
+          unzip -p "$APK" res/mipmap-xxxhdpi-v4/ic_launcher.jpg > /tmp/ic_launcher.jpg
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/ic_launcher.jpg')
+          data=p.read_bytes()
+          assert data[:2] == b'\xff\xd8' and data[-2:] == b'\xff\xd9', 'Ícone dentro do APK está inválido'
+          assert len(data) > 10000, 'Ícone dentro do APK está incompleto'
+          print(f'ÍCONE FINAL VÁLIDO: {len(data)} bytes')
+          PY
 
       - name: Preparar APK
         run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
