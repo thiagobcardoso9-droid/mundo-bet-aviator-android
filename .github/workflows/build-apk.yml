@@ -23,34 +23,39 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Preparar logo PNG oficial
+      - name: Validar PNGs reais do launcher
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p app/src/main/res/mipmap app/src/main/res/drawable-nodpi
-          rm -f app/src/main/res/mipmap-xxxhdpi/ic_launcher.* app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.*
-          rm -f app/src/main/res/drawable/ic_launcher_foreground.xml
-          cat > /tmp/logo.b64 <<'B64'
-          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
-          B64
-          tr -d '[:space:]' < /tmp/logo.b64 | base64 -d > /tmp/ic_launcher.png
-          file /tmp/ic_launcher.png
-          file /tmp/ic_launcher.png | grep -q 'PNG image data, 48 x 48'
-          cp /tmp/ic_launcher.png app/src/main/res/mipmap/ic_launcher.png
-          cp /tmp/ic_launcher.png app/src/main/res/mipmap/ic_launcher_round.png
-          cp /tmp/ic_launcher.png app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
-
-      - name: Validar recursos do launcher
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s app/src/main/res/mipmap/ic_launcher.png
-          test -s app/src/main/res/mipmap/ic_launcher_round.png
-          test -s app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
-          test -s app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-          test -s app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-          file app/src/main/res/mipmap/ic_launcher.png | grep -q 'PNG image data, 48 x 48'
-          echo 'LOGO PNG OFICIAL VÁLIDA'
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          files = [
+              Path('app/src/main/res/mipmap-mdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-hdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xhdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'),
+              Path('app/src/main/res/mipmap-mdpi/ic_launcher_round.png'),
+              Path('app/src/main/res/mipmap-hdpi/ic_launcher_round.png'),
+              Path('app/src/main/res/mipmap-xhdpi/ic_launcher_round.png'),
+              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png'),
+              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png'),
+              Path('app/src/main/res/drawable-nodpi/ic_launcher_foreground.png'),
+          ]
+          for f in files:
+              data = f.read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', f'PNG inválido: {f}'
+              w, h = struct.unpack('>II', data[16:24])
+              assert w > 0 and h > 0, f'Dimensões inválidas: {f}'
+              print(f'PNG OK: {f} - {w}x{h} - {len(data)} bytes')
+          for f in [
+              Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'),
+              Path('app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml')
+          ]:
+              assert f.exists(), f'Adaptive icon ausente: {f}'
+              print(f'ADAPTIVE OK: {f}')
+          PY
 
       - name: Gerar APK
         run: gradle clean assembleDebug
@@ -60,12 +65,17 @@ jobs:
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
-          unzip -l "$APK" | grep -E 'ic_launcher|ic_launcher_foreground'
-          ENTRY=$(unzip -Z1 "$APK" | grep -E 'res/mipmap[^/]*/ic_launcher\.png$|res/mipmap/ic_launcher\.png$' | head -1)
-          test -n "$ENTRY"
-          unzip -p "$APK" "$ENTRY" > /tmp/final_icon.png
-          file /tmp/final_icon.png | grep -q 'PNG image data, 48 x 48'
-          echo 'ÍCONE FINAL PNG VÁLIDO DENTRO DO APK'
+          unzip -l "$APK" | grep -E 'res/mipmap-(mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi)-v4/ic_launcher(_round)?\.png'
+          unzip -l "$APK" | grep -E 'res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml'
+          unzip -p "$APK" res/mipmap-xxxhdpi-v4/ic_launcher.png > /tmp/ic_launcher.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          data=Path('/tmp/ic_launcher.png').read_bytes()
+          assert data[:8] == b'\x89PNG\r\n\x1a\n', 'Ícone PNG final inválido'
+          w,h=struct.unpack('>II',data[16:24])
+          print(f'ÍCONE FINAL OK: {w}x{h} - {len(data)} bytes')
+          PY
 
       - name: Preparar APK
         run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
