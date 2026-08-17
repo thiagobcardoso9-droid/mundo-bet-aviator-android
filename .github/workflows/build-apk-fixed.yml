@@ -1,57 +1,10 @@
 name: Gerar APK FINAL COM LOGO
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - name: Baixar projeto
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Validar logo WebP
-        shell: bash
-        run: |
-          set -euo pipefail
-          LOGO=app/src/main/res/drawable-nodpi/launcher_logo.webp
-          test -s "$LOGO"
-          file "$LOGO"
-          file "$LOGO" | grep -qi 'Web/P image\|WebP'
-          grep -q 'android:icon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
-          grep -q 'android:roundIcon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
-
-      - name: Gerar APK
-        run: gradle clean assembleDebug
-
-      - name: Validar recurso no APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK=app/build/outputs/apk/debug/app-debug.apk
-          test -f "$APK"
-          unzip -Z1 "$APK" | grep -E 'res/drawable-nodpi-v4/launcher_logo\.webp|res/drawable-nodpi/launcher_logo\.webp'
-
-      - name: Preparar APK final
-        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-FINAL.apk
-
-      - name: Publicar APK para download
-        uses: actions/upload-artifact@v4
-        with:
-          name: MUNDO-BET-AVIATOR-FINAL
-          path: MUNDO-BET-AVIATOR-FINAL.apk
-          if-no-files-found: error
-          retention-days: 30
+      - run: echo "Use o workflow Gerar APK MUNDO BET AVIATOR para a compilação automática oficial."

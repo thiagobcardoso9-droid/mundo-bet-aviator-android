@@ -23,35 +23,66 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validar logo WebP
+      - name: Validar PNG real da logo
         shell: bash
         run: |
-          set -euo pipefail
-          LOGO=app/src/main/res/drawable-nodpi/launcher_logo.webp
-          test -s "$LOGO"
-          file "$LOGO"
-          file "$LOGO" | grep -qi 'Web/P image\|WebP'
-          grep -q 'android:icon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
-          grep -q 'android:roundIcon="@drawable/launcher_logo"' app/src/main/AndroidManifest.xml
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, zlib
+          p=Path('app/src/main/res/mipmap-mdpi/ic_launcher.png')
+          data=p.read_bytes()
+          assert data[:8] == b'\x89PNG\r\n\x1a\n'
+          pos=8
+          seen_iend=False
+          while pos < len(data):
+              n=struct.unpack('>I', data[pos:pos+4])[0]; pos+=4
+              typ=data[pos:pos+4]; pos+=4
+              chunk=data[pos:pos+n]; pos+=n
+              crc=struct.unpack('>I', data[pos:pos+4])[0]; pos+=4
+              assert (zlib.crc32(typ+chunk)&0xffffffff)==crc, f'CRC inválido em {typ}'
+              if typ == b'IEND': seen_iend=True; break
+          assert seen_iend
+          print('PNG OFICIAL OK:', p, len(data), 'bytes')
+          PY
+          grep -q 'android:icon="@mipmap/ic_launcher"' app/src/main/AndroidManifest.xml
+          grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' app/src/main/AndroidManifest.xml
 
       - name: Gerar APK
         run: gradle clean assembleDebug
 
-      - name: Validar recurso no APK
+      - name: Validar logo dentro do APK
         shell: bash
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          unzip -Z1 "$APK" | grep -E 'res/drawable-nodpi-v4/launcher_logo\.webp|res/drawable-nodpi/launcher_logo\.webp'
+          ICON=$(unzip -Z1 "$APK" | grep -E 'res/mipmap-mdpi-v4/ic_launcher\.png' | head -1)
+          test -n "$ICON"
+          unzip -p "$APK" "$ICON" > /tmp/ic_launcher.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, zlib
+          data=Path('/tmp/ic_launcher.png').read_bytes()
+          assert data[:8] == b'\x89PNG\r\n\x1a\n'
+          pos=8
+          seen_iend=False
+          while pos < len(data):
+              n=struct.unpack('>I', data[pos:pos+4])[0]; pos+=4
+              typ=data[pos:pos+4]; pos+=4
+              chunk=data[pos:pos+n]; pos+=n
+              crc=struct.unpack('>I', data[pos:pos+4])[0]; pos+=4
+              assert (zlib.crc32(typ+chunk)&0xffffffff)==crc, f'CRC inválido em {typ}'
+              if typ == b'IEND': seen_iend=True; break
+          assert seen_iend
+          print('ÍCONE NO APK OK:', len(data), 'bytes')
+          PY
 
       - name: Preparar APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-1.0.6.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MUNDO-BET-AVIATOR-APK
-          path: MUNDO-BET-AVIATOR.apk
-          if-no-files-found: error
+          name: MUNDO-BET-AVIATOR-1.0.6
+          path: MUNDO-BET-AVIATOR-1.0.6.apk
           retention-days: 30
