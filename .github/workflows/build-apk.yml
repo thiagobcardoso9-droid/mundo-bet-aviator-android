@@ -23,18 +23,15 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Conferir recursos do launcher
+      - name: Conferir ícone oficial
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/src/main/res/mipmap-mdpi/ic_launcher.png
-          test -s app/src/main/res/mipmap-hdpi/ic_launcher.png
-          test -s app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          test -s app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          test -s app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          grep -q 'android:icon="@mipmap/ic_launcher"' app/src/main/AndroidManifest.xml
-          grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' app/src/main/AndroidManifest.xml
-          echo 'Recursos do launcher encontrados.'
+          test -s app/src/main/res/drawable/ic_launcher_official.webp
+          grep -q 'android:icon="@drawable/ic_launcher_official"' app/src/main/AndroidManifest.xml
+          grep -q 'android:roundIcon="@drawable/ic_launcher_official"' app/src/main/AndroidManifest.xml
+          file app/src/main/res/drawable/ic_launcher_official.webp
+          echo 'Ícone oficial encontrado e Manifest configurado.'
 
       - name: Gerar APK
         run: gradle clean assembleDebug
@@ -45,17 +42,17 @@ jobs:
           set -euo pipefail
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          unzip -Z1 "$APK" | grep -E 'res/mipmap-(mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi)-v4/ic_launcher\.png' >/tmp/icon_entries.txt
+          unzip -Z1 "$APK" | grep 'ic_launcher_official' >/tmp/icon_entries.txt
           cat /tmp/icon_entries.txt
           test -s /tmp/icon_entries.txt
 
       - name: Preparar APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-1.0.6.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-1.0.7.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MUNDO-BET-AVIATOR-1.0.6
-          path: MUNDO-BET-AVIATOR-1.0.6.apk
+          name: MUNDO-BET-AVIATOR-1.0.7
+          path: MUNDO-BET-AVIATOR-1.0.7.apk
           if-no-files-found: error
           retention-days: 30
