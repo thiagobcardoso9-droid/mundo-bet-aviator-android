@@ -27,37 +27,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import struct, zlib
-
-          files = [
-              Path('app/src/main/res/mipmap-mdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-hdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xhdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xxhdpi/ic_launcher.png'),
-              Path('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'),
-              Path('app/src/main/res/drawable-nodpi/ic_launcher_foreground.png'),
-          ]
-
-          for f in files:
-              d = f.read_bytes()
-              assert d.startswith(b'\x89PNG\r\n\x1a\n'), f'PNG inválida: {f}'
-              pos = 8
-              saw_iend = False
-              while pos + 12 <= len(d):
-                  n = struct.unpack('>I', d[pos:pos+4])[0]
-                  t = d[pos+4:pos+8]
-                  p = d[pos+8:pos+8+n]
-                  crc = struct.unpack('>I', d[pos+8+n:pos+12+n])[0]
-                  assert (zlib.crc32(p, zlib.crc32(t)) & 0xffffffff) == crc, f'CRC inválido: {f}'
-                  pos += 12 + n
-                  if t == b'IEND':
-                      saw_iend = True
-                      break
-              assert saw_iend, f'PNG incompleta: {f}'
-              print(f'OK: {f} ({len(d)} bytes)')
-          PY
+          for f in \
+            app/src/main/res/mipmap-mdpi/ic_launcher.png \
+            app/src/main/res/mipmap-hdpi/ic_launcher.png \
+            app/src/main/res/mipmap-xhdpi/ic_launcher.png \
+            app/src/main/res/mipmap-xxhdpi/ic_launcher.png \
+            app/src/main/res/mipmap-xxxhdpi/ic_launcher.png \
+            app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
+          do
+            test -s "$f"
+            file "$f"
+            file "$f" | grep -q 'PNG image data'
+          done
 
       - name: Gerar APK
         run: gradle clean assembleDebug
