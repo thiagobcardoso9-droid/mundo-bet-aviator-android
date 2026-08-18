@@ -33,6 +33,14 @@ jobs:
           file app/src/main/res/drawable/ic_launcher_official.webp
           echo 'Ícone oficial encontrado e Manifest configurado.'
 
+      - name: Conferir identificação do APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'MUNDO-BET-AVIATOR-APK/1.0.8' app/src/main/java/com/rt/mundobetaviator/MainActivity.java
+          grep -q "versionName '1.0.8'" app/build.gradle
+          echo 'Identificação APK 1.0.8 configurada.'
+
       - name: Gerar APK
         run: gradle clean assembleDebug
 
@@ -47,12 +55,12 @@ jobs:
           test -s /tmp/icon_entries.txt
 
       - name: Preparar APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-1.0.7.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk MUNDO-BET-AVIATOR-1.0.8.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MUNDO-BET-AVIATOR-1.0.7
-          path: MUNDO-BET-AVIATOR-1.0.7.apk
+          name: MUNDO-BET-AVIATOR-1.0.8
+          path: MUNDO-BET-AVIATOR-1.0.8.apk
           if-no-files-found: error
           retention-days: 30
