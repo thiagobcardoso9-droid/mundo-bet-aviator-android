@@ -28,6 +28,11 @@ public class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
+        // Identifica de forma inequívoca que o dashboard está rodando dentro do APK.
+        // O site usa este marcador para esconder opções de instalar/baixar o aplicativo.
+        String currentUserAgent = settings.getUserAgentString();
+        settings.setUserAgentString(currentUserAgent + " MUNDO-BET-AVIATOR-APK/1.0.8");
+
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
